@@ -3,50 +3,37 @@ import bcrypt from "bcrypt"
 import jwt from "jsonwebtoken";
 import { sendCookie } from "../utils/features.js";
 
-//GetAllusers
-export const getAllUsers = async (req,res) => {};
-
 //Login
 export const login = async(req, res, next) => {
-    const {email, password} = req.body;
+    try{    
+        const {email, password} = req.body;
 
-    const user = await User.findOne({email}).select("+password");
+        const user = await User.findOne({email}).select("+password");
 
-    if(!user)
-    {
-        return res.status(404).json({
-            success: false,
-            message: "Invalid email or password"
+        if (!user) return next(new ErrorHandler("Invalid Email or Password", 400));
 
-        });
+        const isMatch = await bcrypt.compare(password,user.password);
+
+        if (!isMatch)
+            return next(new ErrorHandler("Invalid Email or Password", 400));
+
+
+        sendCookie(user, res , `Welcome back,${user.name}`,200);
     }
-    const isMatch = await bcrypt.compare(password,user.password);
-
-    if(user)
-    {
-        return res.status(404).json({
-            success: false,
-            message: "Invalid email or password"
-
-        });
+    catch(error){
+        next(error);
     }
-    sendCookie(user, res , `Welcome back,${user.name}`,200);
 
 };
 
-//Regiter
+//Register
 export const register = async(req, res) => {
-    const {name, email, password} = req.body;
+    try {
+        const {name, email, password} = req.body;
 
     let user = await User.findOne({email});
-    if(user)
-    {
-        return res.status(404).json({
-            success: false,
-            message: "Invalid email or password"
 
-        });
-    }
+    if (user) return next(new ErrorHandler("User Already Exist", 400));
 
     const hashedPassword = await bcrypt.hash(password,10);
 
@@ -63,22 +50,34 @@ export const register = async(req, res) => {
         message: "Registered successfully",
     })
     sendCookie(user,res,"Registered Successfully",201);
+    
+    } catch (error) {
+        next(error);
+    }
 };
 
 //getmyprofile
 export const getMyProfile = (req, res) =>{
 
+   try {
     res.status(200).json({
         success: true,
         user: req.user,
     });
+   } catch (error) {
+        next(error);
+   }
 };
 
 //logout
 export const logout  = (req, res) =>{
 
-    res.status(200).cookie("token","",{expires:new Date(Date.now())}).json({
-        success: true,
-        user: req.user,
-    });
+    try {
+        res.status(200).cookie("token","",{expires:new Date(Date.now())}).json({
+            success: true,
+            user: req.user,
+        });
+    } catch (error) {
+        next(error);
+    }
 };
