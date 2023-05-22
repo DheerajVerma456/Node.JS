@@ -29,55 +29,41 @@ export const login = async(req, res, next) => {
 //Register
 export const register = async(req, res) => {
     try {
-        const {name, email, password} = req.body;
-
-    let user = await User.findOne({email});
-
-    if (user) return next(new ErrorHandler("User Already Exist", 400));
-
-    const hashedPassword = await bcrypt.hash(password,10);
-
-    user = await User.create({name , email, password: hashedPassword});
-
-    const token = jwt.sign({_id:user._id }, process.env.JWT_SECRET);
-
-    res.status(201).cookie("token",token,{
-        httpOnly: true,
-        maxAge: 15*60*1000,
-    })
-    .json({
-        success: true,
-        message: "Registered successfully",
-    })
-    sendCookie(user,res,"Registered Successfully",201);
+        const { name, email, password } = req.body;
     
-    } catch (error) {
+        let user = await User.findOne({ email });
+    
+        if (user) return next(new ErrorHandler("User Already Exist", 400));
+    
+        const hashedPassword = await bcrypt.hash(password, 10);
+    
+        user = await User.create({ name, email, password: hashedPassword });
+    
+        sendCookie(user, res, "Registered Successfully", 201);
+      } catch (error) {
         next(error);
-    }
+      }
 };
 
 //getmyprofile
 export const getMyProfile = (req, res) =>{
-
-   try {
     res.status(200).json({
         success: true,
         user: req.user,
-    });
-   } catch (error) {
-        next(error);
-   }
+      });
 };
 
 //logout
 export const logout  = (req, res) =>{
-
-    try {
-        res.status(200).cookie("token","",{expires:new Date(Date.now())}).json({
-            success: true,
-            user: req.user,
-        });
-    } catch (error) {
-        next(error);
-    }
+    res
+    .status(200)
+    .cookie("token", "", {
+      expires: new Date(Date.now()),
+      sameSite: process.env.NODE_ENV === "Develpoment" ? "lax" : "none",
+      secure: process.env.NODE_ENV === "Develpoment" ? false : true,
+    })
+    .json({
+      success: true,
+      user: req.user,
+    });
 };
